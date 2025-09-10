@@ -1,6 +1,6 @@
 {
   "name": "individual-data-points",
-  "description": "Checks whether the individual data points are defined in the figure caption.",
+  "description": "Checks whether the individual data points are shown on plots that display average values.",
   "example_class": "figure",
   "examples": [
     "10.1038_emboj.2009.312/content/1",
