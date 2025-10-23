@@ -16,9 +16,9 @@ def main():
     # Import streamlit after environment is configured
     import streamlit.web.cli as stcli
     
-    # Get the path to the benchmark_curation.py file
+    # Get the path to the curation.py file
     workspace_root = Path(__file__).resolve().parent.parent
-    curation_script = workspace_root / "curation.py"
+    curation_script = workspace_root / "core" / "curation.py"
     
     # Parse command line arguments
     parser = argparse.ArgumentParser()
