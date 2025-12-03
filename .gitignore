@@ -124,3 +124,10 @@ runs/
 # MAC
 .DS_Store
 node_modules
+
+# Models
+/hf_cache
+/.models
+uv.lock
+yeet_loader.py
+validate_cacert.py
