@@ -4,6 +4,7 @@ from typing import Dict, Any, List, Optional
 from dataclasses import dataclass, field
 import torch
 from sentence_transformers import SentenceTransformer
+from transformers import AutoTokenizer, AutoModel
 from soda_mmqc.config import (
     DEVICE, 
     DEFAULT_SENTENCE_TRANSFORMER_MODEL
@@ -193,15 +194,76 @@ class JSONEvaluator:
                 f"🤖 Loading SentenceTransformer model "
                 f"'{self.sentence_transformer_model}' on device '{DEVICE}'"
             )
-            self._sentence_transformer = SentenceTransformer(
-                self.sentence_transformer_model, 
-                device=DEVICE
-            )
-            # Log actual device being used
-            actual_device = self._sentence_transformer.device
-            logger.info(
-                f"✅ SentenceTransformer loaded on device: {actual_device}"
-            )
+            try:
+                self._sentence_transformer = SentenceTransformer(
+                    self.sentence_transformer_model,
+                    device=DEVICE
+                )
+                # Log actual device being used
+                actual_device = self._sentence_transformer.device
+                logger.info(
+                    f"✅ SentenceTransformer loaded on device: {actual_device}"
+                )
+            except Exception as e:
+                logger.warning(
+                    "Failed to load SentenceTransformer normally; "
+                    f"falling back to transformers-based embedder: {e}"
+                )
+
+                class HFEmbedder:
+                    def __init__(self, model_name_or_path, device):
+                        self.device = device
+                        self.tokenizer = AutoTokenizer.from_pretrained(
+                            model_name_or_path, local_files_only=False
+                        )
+                        self.model = AutoModel.from_pretrained(
+                            model_name_or_path, local_files_only=False
+                        )
+                        self.model.to(device)
+
+                    def encode(self, texts, convert_to_tensor=True):
+                        # Accept single string or list
+                        single = False
+                        if isinstance(texts, str):
+                            texts = [texts]
+                            single = True
+
+                        encoded = self.tokenizer(
+                            texts,
+                            padding=True,
+                            truncation=True,
+                            return_tensors="pt"
+                        )
+                        input_ids = encoded["input_ids"].to(self.model.device)
+                        attention_mask = encoded["attention_mask"].to(self.model.device)
+
+                        with torch.no_grad():
+                            model_output = self.model(input_ids=input_ids, attention_mask=attention_mask)
+
+                        # mean pooling
+                        token_embeddings = model_output.last_hidden_state
+                        input_mask_expanded = attention_mask.unsqueeze(-1).expand(token_embeddings.size()).float()
+                        sum_embeddings = torch.sum(token_embeddings * input_mask_expanded, 1)
+                        sum_mask = input_mask_expanded.sum(1).clamp(min=1e-9)
+                        embeddings = sum_embeddings / sum_mask
+
+                        if convert_to_tensor:
+                            if single:
+                                return embeddings[0]
+                            return embeddings
+                        else:
+                            # Return numpy
+                            if single:
+                                return embeddings[0].cpu().numpy()
+                            return embeddings.cpu().numpy()
+
+                # instantiate fallback embedder
+                try:
+                    self._sentence_transformer = HFEmbedder(self.sentence_transformer_model, DEVICE)
+                    logger.info("✅ Fallback HF embedder initialized")
+                except Exception as e2:
+                    logger.error(f"Failed to initialize fallback embedder: {e2}")
+                    raise
         return self._sentence_transformer
 
     def _get_schema_for_path(self, path: List[str]) -> Dict[str, Any]:

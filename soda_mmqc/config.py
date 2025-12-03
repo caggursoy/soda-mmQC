@@ -67,7 +67,9 @@ CACHE_DIR = Path(os.getenv("SODA_MMQC_CACHE_DIR", DATA_DIR / "cache"))
 # Subdirectories
 CHECKLIST_DIR = DATA_DIR / "checklist"
 EXAMPLES_DIR = DATA_DIR / "examples"
-EVALUATION_DIR = DATA_DIR / "evaluation"
+# EXAMPLES_DIR = DATA_DIR / "examples_new"
+# EVALUATION_DIR = DATA_DIR / "evaluation"
+EVALUATION_DIR = DATA_DIR / "evaluation_new"
 PLOTS_DIR = DATA_DIR / "plots"
 
 # String comparison metrics configuration
@@ -81,8 +83,8 @@ STRING_METRICS = [
 DEFAULT_MATCH_THRESHOLD = 0.3
 
 # SentenceTransformer model for semantic similarity
-DEFAULT_SENTENCE_TRANSFORMER_MODEL = "all-MiniLM-L6-v2"
-
+# DEFAULT_SENTENCE_TRANSFORMER_MODEL = "all-MiniLM-L6-v2"
+DEFAULT_SENTENCE_TRANSFORMER_MODEL = "./.models/all-MiniLM-L6-v2" # local solution
 
 # API Provider validation and setup
 def _validate_and_setup_api_provider() -> str:
@@ -129,6 +131,7 @@ API_PROVIDER = _validate_and_setup_api_provider()
 # Default models for each provider
 DEFAULT_MODELS = {
     "openai": "gpt-4o-2024-08-06",
+    # "openai": "gpt-4.1-nano",
     "anthropic": "claude-3-5-sonnet-20241022"
 }
 
